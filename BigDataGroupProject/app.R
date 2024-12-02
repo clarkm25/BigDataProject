@@ -13,8 +13,15 @@ model1_layout <- page_fillable(
   layout_columns(
     card(card_header("Sliders")),
     layout_columns(
-      card(card_header("Classification Tree")),
-      card(card_header("Description")),
+      card(card_header(
+        tooltip(
+          actionButton("show", "Classification Tree"), 
+          "Description of what is happening with this tree",
+          id = "tip",
+          placement = "right"
+          ))
+      ),
+      card(card_header("Analysis")),
       col_widths = c(12,12),
       row_heights = c(9,3)
     ),

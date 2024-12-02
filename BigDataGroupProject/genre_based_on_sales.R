@@ -1,30 +1,32 @@
 library(rpart)
 library(rpart.plot)
+library(dplyr)
 
 #########################################################################
 ######## Classification Tree for Predicting Genre based on Sales ########
 #########################################################################
-removeOutliers <- function(data, column_name) {
-  Q1 <- quantile(data[[column_name]], 0.25)
-  Q3 <- quantile(data[[column_name]], 0.75)
-  IQR <- Q3 - Q1
-  lower_bound <- Q1 - 1.5 * IQR
-  upper_bound <- Q3 + 1.5 * IQR
-  return(data[data[[column_name]] >= lower_bound & data[[column_name]] <= upper_bound, ])
+remove_outliers <- function(df, cols) {
+  for (col in cols) {
+    Q1 <- quantile(df[[col]], 0.25, na.rm = TRUE)
+    Q3 <- quantile(df[[col]], 0.75, na.rm = TRUE)
+    IQR <- Q3 - Q1
+    lower_bound <- Q1 - 1.5 * IQR
+    upper_bound <- Q3 + 1.5 * IQR
+    df <- df %>%
+      filter(df[[col]] >= lower_bound & df[[col]] <= upper_bound)
+  }
+  return(df)
 }
 
 # Read the data
 vgsales_uncleaned <- read.csv("vgsales.csv")
 
-vgsales <- removeOutliers(vgsales_uncleaned, 'NA_Sales')
-vgsales <- removeOutliers(vgsales_uncleaned, 'EU_Sales')
-vgsales <- removeOutliers(vgsales_uncleaned, 'JP_Sales')
-vgsales <- removeOutliers(vgsales_uncleaned, 'Other_Sales')
-vgsales <- removeOutliers(vgsales_uncleaned, 'Global_Sales')
+numeric_cols <- c("NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales")
+vgsales <- remove_outliers(vgsales_uncleaned, numeric_cols)
 
 # First attempt at model - Creates a tree with a single leave..
 genre_by_sales_model <- rpart(Genre ~ NA_Sales + EU_Sales + JP_Sales + 
-                                Other_Sales, data = vgsales, method = "class")
+                                Other_Sales + Platform, data = vgsales, method = "class")
 rpart.plot(genre_by_sales_model, type = 3, extra = 101, fallen.leaves = TRUE, 
            box.palette = "Blues", main = "Classification Tree for Genre based on Sales")
 
