@@ -24,15 +24,9 @@ vgsales_uncleaned <- read.csv("vgsales.csv")
 numeric_cols <- c("NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales")
 vgsales <- remove_outliers(vgsales_uncleaned, numeric_cols)
 
-# First attempt at model - Creates a tree with a single leave..
-genre_by_sales_model <- rpart(Genre ~ NA_Sales + EU_Sales + JP_Sales + 
-                                Other_Sales + Platform, data = vgsales, method = "class")
-rpart.plot(genre_by_sales_model, type = 3, extra = 101, fallen.leaves = TRUE, 
-           box.palette = "Blues", main = "Classification Tree for Genre based on Sales")
-
 # Actual model
 genre_by_sales_model <- rpart(Genre ~ NA_Sales + EU_Sales + JP_Sales + 
-                                Other_Sales, data = vgsales, method = "class", 
+                                Other_Sales + Platform, data = vgsales, method = "class", 
                               control = rpart.control(cp = 0.001))
 rpart.plot(genre_by_sales_model, type = 3, extra = 101, fallen.leaves = TRUE,
            box.palette = "Blues", main = "Classification Tree for Genre based on Sales")
@@ -62,7 +56,7 @@ rpart.plot(pruned_tree, type = 3, extra = 101, fallen.leaves = TRUE, box.palette
 
 # Predictions for Pruned Tree
 predict_pruned <- predict(pruned_tree, vgsales, type = "class")
-matrix <- table(Predicted = predicted_pruned, Actual = vgsales$Genre)
+matrix <- table(Predicted = predict_pruned, Actual = vgsales$Genre)
 print(matrix)
 
 # Misclassification for Pruned Tree - 0.754
@@ -74,8 +68,15 @@ actual <- 1 - miss
 print(actual)
 
 
-genre_by_sales_model <- rpart(Genre ~ NA_Sales + EU_Sales + JP_Sales + 
-                                Other_Sales, data = vgsales, method = "class")
-rpart.plot(genre_by_sales_model, type = 3, extra = 101, fallen.leaves = TRUE, 
-           box.palette = "Blues", main = "Classification Tree for Genre based on Sales")
+# Convert non-numeric columns to numeric
+vgsales_transformed <- vgsales_uncleaned
+vgsales_transformed[] <- lapply(vgsales_uncleaned, function(col) {
+  if (is.factor(col) || is.character(col)) {
+    as.numeric(as.factor(col))
+  } else {
+    col
+  }
+})
 
+# Use pairs() on the transformed dataset
+pairs(vgsales_transformed)
