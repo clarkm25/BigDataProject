@@ -25,9 +25,7 @@ numeric_cols <- c("NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales")
 vgsales <- remove_outliers(vgsales_uncleaned, numeric_cols)
 
 # Actual model
-genre_by_sales_model <- rpart(Genre ~ NA_Sales + EU_Sales + JP_Sales + 
-                                Other_Sales + Platform, data = vgsales, method = "class", 
-                              control = rpart.control(cp = 0.001))
+genre_by_sales_model <- rpart(Genre ~ Global_Sales + Platform + Publisher, data = vgsales, method = "class")
 rpart.plot(genre_by_sales_model, type = 3, extra = 101, fallen.leaves = TRUE,
            box.palette = "Blues", main = "Classification Tree for Genre based on Sales")
 
@@ -66,17 +64,3 @@ print(miss)
 # Actual classification for Pruned Tree - 0.245
 actual <- 1 - miss
 print(actual)
-
-
-# Convert non-numeric columns to numeric
-vgsales_transformed <- vgsales_uncleaned
-vgsales_transformed[] <- lapply(vgsales_uncleaned, function(col) {
-  if (is.factor(col) || is.character(col)) {
-    as.numeric(as.factor(col))
-  } else {
-    col
-  }
-})
-
-# Use pairs() on the transformed dataset
-pairs(vgsales_transformed)
