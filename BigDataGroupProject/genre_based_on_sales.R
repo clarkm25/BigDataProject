@@ -24,8 +24,14 @@ vgsales_uncleaned <- read.csv("vgsales.csv")
 numeric_cols <- c("NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales")
 vgsales <- remove_outliers(vgsales_uncleaned, numeric_cols)
 
+set.seed(2)
+train = sample(1:nrow(vgsales), 5000)
+vgsales.test = vgsales[-train,]
+Genre.test=vgsales$Genre[-train]
+
 # Actual model
-genre_by_sales_model <- rpart(Genre ~ Global_Sales + Platform + Publisher, data = vgsales, method = "class")
+genre_by_sales_model <- rpart(as.factor(Genre) ~ Global_Sales + Platform + 
+                                Publisher, data = vgsales, subset=train, method = "class")
 rpart.plot(genre_by_sales_model, type = 3, extra = 101, fallen.leaves = TRUE,
            box.palette = "Blues", main = "Classification Tree for Genre based on Sales")
 
