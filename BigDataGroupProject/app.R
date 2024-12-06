@@ -10,6 +10,30 @@ library(bslib)
 library(dplyr)
 library(rpart)
 library(rpart.plot)
+library(scales) # for comma formatting
+
+
+# function to remove outliers (IQR)
+remove_outliers <- function(data, column) {
+  Q1 <- quantile(data[[column]], 0.25, na.rm = TRUE)
+  Q3 <- quantile(data[[column]], 0.75, na.rm = TRUE)
+  IQR <- Q3 - Q1
+  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + 1.5 * IQR
+  
+  data <- data[data[[column]] >= lower_bound & data[[column]] <= upper_bound, ]
+  
+  return(data)
+}
+
+# regression tree control parameters
+# minsplit: minimum number of obs required in a node for it to be considered for splitting
+# minbucket: minimum number of obs allowed in any leaf node
+# depth: max depth of tree
+# cp: determines minimum improvement required for a split
+control_params <- function(depth) {
+  rpart.control(minsplit = 5, minbucket = 3, maxdepth = depth, cp = 0.001)
+}
 
 # About page text - We can use HTML :D
 about_layout <- layout_columns(
@@ -207,12 +231,32 @@ ui <- page_fillable(
     ),
     nav_panel("Platform Based on Year, Publisher, Region", platform_model_layout), 
     nav_panel("Region Based on Sales, Genre, Platform", region), 
-    nav_menu( 
-      "Sales Based on Platform and Genre", 
-      nav_panel("NA Sales", "NA_Sales Regression Tree"),
-      nav_panel("EU Sales", "EU_Sales Regression Tree"),
-      nav_panel("JP Sales", "JP_Sales Regression Tree"),
-      nav_panel("Other Sales", "Other_Sales Regression Tree")
+    nav_panel("Sales Based on Platform and Genre",
+              layout_columns(
+                card(card_header("Sliders"),
+                     sliderInput("tree_depth", "Select Tree Depth:", min = 1, max = 4, value = 1)
+                ),
+                layout_columns(
+                  card(card_header("Regression Tree"),
+                       selectInput("sales_type", "Select Sales Region", choices = c("NA Sales", "EU Sales", "JP Sales", "Other Sales")),
+                       plotOutput("sales_tree")
+                  ),
+                  card(card_header("Description"), textOutput("tree_description")),
+                  col_widths = c(12, 12),
+                  row_heights = c(9, 3)
+                ),
+                card(card_header("Predict Sales"),
+                     # select genre drop down menu
+                     selectInput("selected_genre", "Select Genre:", choices = NULL),
+                     # select platform drop down menu
+                     selectInput("selected_platform", "Select Platform:", choices = NULL),
+                     # predict button
+                     actionButton("predict_btn", "Predict"), 
+                     # output section ID
+                     textOutput("prediction_output")
+                ),
+                col_widths = c(3, 6, 3)
+              )
     )
     
   ), 
@@ -319,6 +363,93 @@ server <- function(input, output, session) {
     })
   })
   ########### END REGION CLASSIFICATION TREE ###########
+  
+  ########### START SALES REGRESSION TREE ###########
+  # load data into environment and omit data
+  cleaned_data <- reactive({
+    data <- read.csv("vgsales.csv")
+    data <- na.omit(data)
+    # remove outliers for each target column using the remove_outliers function
+    data <- remove_outliers(data, "NA_Sales")
+    data <- remove_outliers(data, "EU_Sales")
+    data <- remove_outliers(data, "JP_Sales")
+    data <- remove_outliers(data, "Other_Sales")
+    
+    return(data)
+  })
+  
+  # drop down menu that loads and gives user a choice to choose Genre and Platform from data set 
+  # 'observe' updates the drop down menu for genre and platform whenever the data set changes
+  observe({
+    data <- cleaned_data()
+    updateSelectInput(session, "selected_genre", choices = unique(data$Genre))
+    updateSelectInput(session, "selected_platform", choices = unique(data$Platform))
+  })
+  
+  # build regression models and assign them to corresponding variable (na_model, eu_model, jp_model, other_model)
+  models <- reactive({
+    data <- cleaned_data()
+    list(
+      na_model = rpart(NA_Sales ~ Platform + Genre, data = data, method = "anova", control = control_params(input$tree_depth)),
+      eu_model = rpart(EU_Sales ~ Platform + Genre, data = data, method = "anova", control = control_params(input$tree_depth)),
+      jp_model = rpart(JP_Sales ~ Platform + Genre, data = data, method = "anova", control = control_params(input$tree_depth)),
+      other_model = rpart(Other_Sales ~ Platform + Genre, data = data, method = "anova", control = control_params(input$tree_depth))
+    )
+  })
+  
+  # render regression tree plots, when sales is chosen, R will switch the regression tree to corresponding tree 
+  output$sales_tree <- renderPlot({
+    selected_model <- switch(input$sales_type,
+                             "NA Sales" = models()$na_model,
+                             "EU Sales" = models()$eu_model,
+                             "JP Sales" = models()$jp_model,
+                             "Other Sales" = models()$other_model)
+    rpart.plot(selected_model, main = paste("Regression Tree for", input$sales_type, "based on Platform and Genre"), type = 4, fallen.leaves = TRUE, extra = 101)
+  })
+  
+  # different descriptions based on selected sales region
+  output$tree_description <- renderText({
+    description <- switch(input$sales_type,
+                          "NA Sales" = "This regression tree analyzes the relationship between North American (NA) sales and the combination of gaming platforms and genres. 
+                          This model is particularly useful for game publishers aiming to optimize sales in the North American gaming market. 
+                          By understanding how platform and genre affect sales, companies can focus marketing efforts on successful platform-genre combinations and 
+                          prioritize game development for platforms that have high sales in the region.",
+                          "EU Sales" = "This regression tree analyzes the relationship between Europe (EU) sales and the combination of gaming platforms and genres. 
+                          This model is particularly useful for game publishers aiming to optimize sales in the European gaming market. 
+                          By understanding how platform and genre affect sales, companies can focus marketing efforts on successful platform-genre combinations and 
+                          prioritize game development for platforms that have high sales in the region.",
+                          "JP Sales" = "This regression tree analyzes the relationship between Japan (JP) sales and the combination of gaming platforms and genres.
+                          This model is particularly useful for game publishers aiming to optimize sales in the Japanese gaming market. 
+                          By understanding how platform and genre affect sales, companies can focus marketing efforts on successful platform-genre combinations and 
+                          prioritize game development for platforms that have high sales in the region.",
+                          "Other Sales" = "This regression tree analyzes the relationship between other countires sales and the combination of gaming platforms and genres.
+                          This model is particularly useful for game publishers aiming to optimize sales in the other countries gaming market. 
+                          By understanding how platform and genre affect sales, companies can focus marketing efforts on successful platform-genre combinations and 
+                          prioritize game development for platforms that have high sales in the region." )
+    return(description)
+  })
+  
+  # predict sales based on the selected Genre and Platform
+  observeEvent(input$predict_btn, {
+    data <- cleaned_data()
+    selected_model <- switch(input$sales_type,
+                             "NA Sales" = models()$na_model,
+                             "EU Sales" = models()$eu_model,
+                             "JP Sales" = models()$jp_model,
+                             "Other Sales" = models()$other_model)
+    
+    prediction <- predict(selected_model, newdata = data.frame(Genre = input$selected_genre, Platform = input$selected_platform))
+    output$prediction_output <- renderText({
+      # convert prediction to whole number in millions
+      prediction_millions <- round(prediction * 1e6) # 1,000,000
+      formatted_prediction <- comma_format()(prediction_millions)
+      paste("Predicted Sales for", input$sales_type, 
+            "with Genre:", input$selected_genre, 
+            "and Platform:", input$selected_platform, 
+            "=", formatted_prediction, "sales") 
+    })
+  })
+  ########### END SALES REGRESSION TREE ###########
 }
 
 shinyApp(ui, server)
