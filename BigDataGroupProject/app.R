@@ -11,7 +11,21 @@ visuals_layout <- layout_columns(
 
 model1_layout <- page_fillable(
   layout_columns(
-    card(card_header("Sliders")),
+    card(card_header("Sliders"),
+         sliderInput("control", 
+                     "Enter Control:",
+                     value = 0,
+                     min = 0,
+                     max = 0.01,
+                     step = 0.0001
+         ),
+         textInput("maxdepth",
+                   "Enter Maximum Depth:",
+                   placeholder = "Enter text here.",
+         ),
+         verbatimTextOutput("value")
+    ),
+    card(card_header("Prediction")),
     layout_columns(
       card(card_header(
         tooltip(
@@ -19,13 +33,13 @@ model1_layout <- page_fillable(
           "Description of what is happening with this tree",
           id = "tip",
           placement = "right"
-          ))
+        ))
       ),
       card(card_header("Analysis")),
       col_widths = c(12,12),
       row_heights = c(9,3)
     ),
-    col_widths = c(3,9)
+    col_widths = c(2,3,7)
   )
 )
 
