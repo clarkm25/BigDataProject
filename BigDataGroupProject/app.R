@@ -92,14 +92,13 @@ ui <- page_fillable(
     nav_panel("About", about_layout),
     nav_menu(
       "Visuals - Graphs",
-      nav_panel("Global Sales Based on Genre", "Graph Here",
+      nav_panel("Global Sales Based on Genre", 
                 div(
                   style = "display: flex; gap: 10px;",
                   tags$img(src="global_sales_by_genre.png")
                 )
               ),
-      nav_panel("Global Sales Based on Console", "Graph Here",
-                "Global Sales Based on Genre", "Graph Here",
+      nav_panel("Global Sales Based on Console", 
                 div(
                   style = "display: flex; gap: 10px;",
                   tags$img(src="global_sales_by_console_1.png"),
@@ -108,26 +107,26 @@ ui <- page_fillable(
                   tags$img(src="global_sales_by_console_4.png")
                 )
               ),
-      nav_panel("Global Sales Based on Publisher", "Graph Here",
+      nav_panel("Global Sales Based on Publisher", 
                 div(
                   style = "display: flex; gap: 10px;",
                   tags$img(src="global_sales_by_publisher.png"),
                   tags$img(src="global_sales_by_publisher_top_10.png")
                 )
               ),
-      nav_panel("Global Sales Per Genre Based on Publisher", "Graph Here",
+      nav_panel("Global Sales Per Genre Based on Publisher", 
                 div(
                   style = "display: flex; gap: 10px;",
                   tags$img(src="global_sales_per_genre_by_publisher.png")
                 )
               ),
-      nav_panel("Global Sales Based on Year", "Graph Here",
+      nav_panel("Global Sales Based on Year", 
                 div(
                   style = "display: flex; gap: 10px;",
                   tags$img(src = "global_sales_based_on_year.png", style = "width: 800px; height: auto;")
                 )
               ),
-      nav_panel("Sales Per Region Based on Genre", "Graph Here",
+      nav_panel("Sales Per Region Based on Genre",
                 div(
                   style = "display: flex; gap: 10px;",
                   tags$img(src="sales_per_region_based_on_genre_1.png"),
@@ -135,7 +134,7 @@ ui <- page_fillable(
                   tags$img(src="sales_per_region_based_on_genre_3.png"),
                   tags$img(src="sales_per_region_based_on_genre_4.png")
                 )),
-      nav_panel("Sales Per Region Based on Top 10 Platforms of Each Region", "Graph Here",
+      nav_panel("Sales Per Region Based on Top 10 Platforms of Each Region", 
                 div(
                   style = "display: flex; gap: 10px;",
                   tags$img(src="sales_per_region_based_on_top_10_platforms_of_each_region.png")
