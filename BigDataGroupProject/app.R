@@ -1,5 +1,15 @@
+# app.R
+# Fall 2024
+# This is the main script for the shiny app. This contains the code for our
+# dashboard and controls the creation of the models and predictions.
+# 
+# Authors: Tyler, Max, Gavin
+
 library(shiny)
 library(bslib)
+library(dplyr)
+library(rpart)
+library(rpart.plot)
 
 # About page text - We can use HTML :D
 about_layout <- layout_columns(
@@ -140,19 +150,60 @@ region <- page_fillable(
   )
 )
 
-
+# Main UI page with tabs for the models, graphs, and description
 ui <- page_fillable(
   navset_card_tab(
     nav_panel("About", about_layout),
     nav_menu(
       "Visuals - Graphs",
-      nav_panel("Global Sales Based on Genre", "Graph Here"),
-      nav_panel("Global Sales Based on Console", "Graph Here"),
-      nav_panel("Global Sales Based on Publisher", "Graph Here"),
-      nav_panel("Global Sales Per Genre Based on Publisher", "Graph Here"),
-      nav_panel("Global Sales Based on Year", "Graph Here"),
-      nav_panel("Sales Per Region Based on Genre", "Graph Here"),
-      nav_panel("Sales Per Region Based on Top 10 Platforms of Each Region", "Graph Here")
+      nav_panel("Global Sales Based on Genre", 
+                div(
+                  style = "display: flex; gap: 10px;",
+                  tags$img(src="global_sales_by_genre.png")
+                )
+              ),
+      nav_panel("Global Sales Based on Console", 
+                div(
+                  style = "display: flex; gap: 10px;",
+                  tags$img(src="global_sales_by_console_1.png"),
+                  tags$img(src="global_sales_by_console_2.png"),
+                  tags$img(src="global_sales_by_console_3.png"),
+                  tags$img(src="global_sales_by_console_4.png")
+                )
+              ),
+      nav_panel("Global Sales Based on Publisher", 
+                div(
+                  style = "display: flex; gap: 10px;",
+                  tags$img(src="global_sales_by_publisher.png"),
+                  tags$img(src="global_sales_by_publisher_top_10.png")
+                )
+              ),
+      nav_panel("Global Sales Per Genre Based on Publisher", 
+                div(
+                  style = "display: flex; gap: 10px;",
+                  tags$img(src="global_sales_per_genre_by_publisher.png")
+                )
+              ),
+      nav_panel("Global Sales Based on Year", 
+                div(
+                  style = "display: flex; gap: 10px;",
+                  tags$img(src = "global_sales_based_on_year.png", style = "width: 800px; height: auto;")
+                )
+              ),
+      nav_panel("Sales Per Region Based on Genre",
+                div(
+                  style = "display: flex; gap: 10px;",
+                  tags$img(src="sales_per_region_based_on_genre_1.png"),
+                  tags$img(src="sales_per_region_based_on_genre_2.png"),
+                  tags$img(src="sales_per_region_based_on_genre_3.png"),
+                  tags$img(src="sales_per_region_based_on_genre_4.png")
+                )),
+      nav_panel("Sales Per Region Based on Top 10 Platforms of Each Region", 
+                div(
+                  style = "display: flex; gap: 10px;",
+                  tags$img(src="sales_per_region_based_on_top_10_platforms_of_each_region.png")
+                )
+              )
     ),
     nav_panel("Platform Based on Year, Publisher, Region", platform_model_layout), 
     nav_panel("Region Based on Sales, Genre, Platform", region), 
@@ -214,12 +265,16 @@ server <- function(input, output, session) {
   ########### END PLATFORM CLASSIFICATION TREE ###########
 
   ########### START REGION CLASSIFICATION TREE ###########
-  tree_model <- reactiveVal(NULL)
+  # Load the pre-processed data and tree for predicting region
+  load("tree_model.RData")  # Load the saved model (assuming tree_model is the saved object)
+  
+  # Create the model for the region prediction and initialize as null
+  tree_model <- reactiveVal(NULL)  
   
   # Builds the tree using the chosen cp and max depth
   observeEvent(input$build_tree, {
     tree <- build_tree(input$cp, input$max_depth)
-    tree_model(tree)
+    tree_model(tree)  # Update the reactive value with the new tree
   })
   
   # Shows the description for the region tree model
@@ -235,13 +290,13 @@ server <- function(input, output, session) {
   
   # Gets the tree model and plots it on the right panel
   output$tree_plot <- renderPlot({
-    req(tree_model())
+    req(tree_model())  # Ensure tree_model() is available before rendering the plot
     rpart.plot(tree_model(), type = 3, extra = 101, fallen.leaves = TRUE, main = "Region Given Sales & Platform")
   })
   
   # This makes a prediction for the tree that is created
   observeEvent(input$predict, {
-    req(tree_model())
+    req(tree_model())  # Ensure tree_model() is available
     
     # Checks for valid input else give error
     if (input$platform == "" || !input$platform %in% game_data_clean$Platform) {
